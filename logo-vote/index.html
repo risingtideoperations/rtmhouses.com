@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>RTM Houses Logo Vote</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;700;900&display=swap">
+<style>
+/* Layout: one column. Header, a grid of logo cards you tap in rank order, a sticky ballot bar, then standings. */
+:root {
+  --page: #E9EDF1;
+  --card: #FFFFFF;
+  --ink: #14202B;
+  --muted: #55616D;
+  --line: #C8D0D8;
+  --pick: #0E6B69;
+  --pick-soft: #DCEFEE;
+  --error: #B3261E;
+  --font: Archivo, "Helvetica Neue", Arial, sans-serif;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html { background: var(--page); }
+body { margin: 0; background: var(--page); color: var(--ink); font-family: var(--font); font-size: 16px; line-height: 1.45; }
+.wrap { max-width: 1120px; margin: 0 auto; padding-inline: 16px; padding-block: 28px 40px; display: flex; flex-direction: column; gap: 24px; }
+h1 { margin: 0; font-size: clamp(28px, 5vw, 40px); font-weight: 900; line-height: 1.1; text-wrap: balance; }
+h2 { margin: 0; font-size: 22px; font-weight: 900; }
+p { margin: 0; }
+.lede { max-width: 60ch; color: var(--muted); font-size: 17px; }
+.lede b { color: var(--ink); }
+.head { display: flex; flex-direction: column; gap: 10px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 16px; }
+.opt { position: relative; display: flex; flex-direction: column; padding: 0; border: 2px solid var(--line); border-radius: 12px; background: var(--card); color: inherit; font: inherit; text-align: left; cursor: pointer; overflow: hidden; }
+.opt:hover { border-color: var(--muted); }
+.opt:focus-visible { outline: 3px solid var(--pick); outline-offset: 2px; }
+.opt svg { display: block; width: 100%; height: auto; }
+.opt .cap { display: flex; align-items: baseline; gap: 8px; padding: 10px 12px; border-top: 1px solid var(--line); }
+.opt .letter { font-weight: 900; font-size: 18px; }
+.opt .nm { color: var(--muted); font-size: 14px; }
+.opt .rank { position: absolute; top: 10px; left: 10px; padding: 4px 10px; border-radius: 999px; background: var(--pick); color: #FFFFFF; font-weight: 700; font-size: 14px; }
+.opt.picked { border-color: var(--pick); box-shadow: 0 0 0 2px var(--pick); }
+.ballot { background: var(--card); border: 2px solid var(--ink); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+.slots { display: flex; flex-wrap: wrap; gap: 8px; }
+.slot { flex: 1 1 150px; min-width: 0; padding: 8px 10px; border-radius: 8px; background: var(--page); font-size: 14px; color: var(--muted); }
+.slot b { color: var(--ink); }
+.slot.full { background: var(--pick-soft); color: var(--ink); }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: stretch; }
+.row label { flex: 1 1 100%; font-size: 14px; font-weight: 700; }
+.row input { flex: 1 1 180px; min-width: 0; min-height: 46px; padding: 8px 12px; border: 2px solid var(--line); border-radius: 8px; font: inherit; color: var(--ink); background: #FFFFFF; }
+.row input:focus-visible { outline: 3px solid var(--pick); outline-offset: 1px; }
+.btn { min-height: 46px; padding: 8px 18px; border: 0; border-radius: 8px; background: var(--ink); color: #FFFFFF; font: inherit; font-weight: 700; cursor: pointer; }
+.btn:disabled { opacity: 0.55; cursor: default; }
+.btn.ghost { background: transparent; color: var(--ink); border: 2px solid var(--ink); }
+.btn:focus-visible { outline: 3px solid var(--pick); outline-offset: 2px; }
+.msg { font-size: 15px; font-weight: 700; min-height: 1.45em; }
+.msg.err { color: var(--error); }
+.msg.ok { color: var(--pick); }
+.standings { background: var(--card); border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 14px; }
+.sthead { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
+.bars { display: flex; flex-direction: column; gap: 8px; }
+.bar { display: grid; grid-template-columns: minmax(0, 190px) minmax(0, 1fr) 64px; gap: 10px; align-items: center; font-size: 14px; }
+.bar .who { min-width: 0; overflow-wrap: anywhere; }
+.bar .who b { font-weight: 900; }
+.bar .track { height: 18px; background: var(--page); border-radius: 4px; overflow: hidden; }
+.bar .fill { height: 100%; background: var(--pick); border-radius: 4px; }
+.bar .pts { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+.note { color: var(--muted); font-size: 14px; }
+@media (max-width: 520px) { .bar { grid-template-columns: minmax(0, 110px) minmax(0, 1fr) 56px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="head">
+    <h1>RTM Houses logo vote</h1>
+    <p class="lede">Tap your <b>favorite first</b>, then your second, then your third. Favorite gets 3 points, second gets 2, third gets 1. Most points wins. Tap a pick again to remove it.</p>
+  </div>
+
+  <div class="grid" id="grid"></div>
+
+  <form class="ballot" id="ballot" novalidate>
+    <div class="slots" id="slots"></div>
+    <div class="row">
+      <label for="voter">Your name</label>
+      <input id="voter" name="voter" type="text" autocomplete="name" maxlength="60" placeholder="First and last name">
+      <button class="btn" id="submit" type="submit">Submit vote</button>
+    </div>
+    <div class="msg" id="msg" role="status" aria-live="polite"></div>
+  </form>
+
+  <section class="standings" aria-labelledby="sth">
+    <div class="sthead">
+      <h2 id="sth">Standings</h2>
+      <button class="btn ghost" id="toggle" type="button">Show standings</button>
+    </div>
+    <div id="board" hidden>
+      <div class="bars" id="bars"></div>
+    </div>
+    <p class="note" id="voters">Standings stay hidden until you vote or tap the button, so nobody is swayed.</p>
+  </section>
+</div>
+
+<script>
+const API = "https://csdsendpbnwycwhqwgbe.supabase.co/functions/v1/logo-vote";
+
+const P = {
+  navy:     { bg: "#F3F6F8", ink: "#14324B", acc: "#178A87", on: "#FFFFFF", accOn: "#5CC6C0" },
+  navyDark: { bg: "#14324B", ink: "#FFFFFF", acc: "#5CC6C0", on: "#14324B", accOn: "#178A87" },
+  charcoal: { bg: "#F5F3F0", ink: "#23272B", acc: "#D9601A", on: "#FFFFFF", accOn: "#F28C45" },
+  charDark: { bg: "#23272B", ink: "#FFFFFF", acc: "#F28C45", on: "#23272B", accOn: "#D9601A" },
+  forest:   { bg: "#F4F1E6", ink: "#1E4033", acc: "#B8862B", on: "#F4F1E6", accOn: "#E0B552" },
+  royal:    { bg: "#FFFFFF", ink: "#1B3A8C", acc: "#D03A2F", on: "#FFFFFF", accOn: "#FF9C8F" },
+  slate:    { bg: "#EEF3F8", ink: "#2B3F5C", acc: "#2F8FD0", on: "#FFFFFF", accOn: "#8CC8F2" },
+  black:    { bg: "#FFFFFF", ink: "#151515", acc: "#C2932B", on: "#FFFFFF", accOn: "#E3B955" }
+};
+
+const txt = (x, y, size, weight, fill, s, ls) =>
+  `<text x="${x}" y="${y}" text-anchor="middle" font-size="${size}" font-weight="${weight}" fill="${fill}"${ls ? ` letter-spacing="${ls}"` : ""}>${s}</text>`;
+const word = (y, size, p) =>
+  `<text x="300" y="${y}" text-anchor="middle" font-size="${size}" fill="${p.ink}"><tspan font-weight="900">RTM</tspan><tspan font-weight="500" dx="${Math.round(size * 0.26)}">HOUSES</tspan></text>`;
+const spaced = (y, fill) => txt(306, y, 30, 700, fill, "HOUSES", 12.6);
+const roofMark = (ink, acc) =>
+  `<g fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="16">
+    <path d="M78 220V130H112a24 24 0 0 1 0 48H78M112 178L140 220" stroke="${ink}"/>
+    <path d="M256 220V130L290 180L324 130V220" stroke="${ink}"/>
+    <path d="M40 118L200 30L360 118M200 30V220" stroke="${acc}"/></g>`;
+const wave = (y, color) =>
+  `<path d="M45 ${y}q17.5 -14 35 0t35 0t35 0t35 0t35 0t35 0" fill="none" stroke="${color}" stroke-width="6" stroke-linecap="round"/>`;
+
+const L = {
+  roofline: p => `<g transform="translate(100 75)">${roofMark(p.ink, p.acc)}</g>${spaced(367, p.ink)}`,
+  roofTile: p => `<rect x="150" y="38" width="300" height="300" rx="34" fill="${p.ink}"/>
+    <g transform="translate(160 92) scale(0.7)">${roofMark(p.on, p.accOn)}</g>${spaced(398, p.ink)}`,
+  badge: p => `<g transform="translate(150 68)"><rect x="215" y="28" width="30" height="60" fill="${p.ink}"/>
+    <path d="M150 14L286 112V246H14V112Z" fill="${p.ink}" stroke="${p.ink}" stroke-width="12" stroke-linejoin="round"/>
+    ${txt(150, 198, 88, 900, p.on, "RTM")}${wave(226, p.accOn)}</g>${spaced(374, p.ink)}`,
+  badgeOutline: p => `<g transform="translate(150 68)"><rect x="215" y="28" width="30" height="60" fill="${p.ink}"/>
+    <path d="M150 14L286 112V246H14V112Z" fill="${p.bg}" stroke="${p.ink}" stroke-width="12" stroke-linejoin="round"/>
+    ${txt(150, 198, 88, 900, p.ink, "RTM")}${wave(226, p.acc)}</g>${spaced(374, p.ink)}`,
+  badgeStacked: p => `<g transform="translate(120 62) scale(1.2)"><rect x="215" y="28" width="30" height="60" fill="${p.ink}"/>
+    <path d="M150 14L286 112V246H14V112Z" fill="${p.ink}" stroke="${p.ink}" stroke-width="12" stroke-linejoin="round"/>
+    ${txt(150, 182, 84, 900, p.on, "RTM")}${txt(154, 222, 27, 700, p.accOn, "HOUSES", 8)}</g>`,
+  key: p => `<g transform="translate(105 96)" fill="none" stroke="${p.ink}" stroke-width="14" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M30 150V80L85 35L140 80V150Z"/><path d="M140 115H360M300 115V150M335 115V142"/>
+    <circle cx="85" cy="108" r="12" fill="${p.acc}" stroke="none"/></g>${word(340, 52, p)}`,
+  roofs: p => `<g transform="translate(120 98)" fill="none" stroke-width="14" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M40 150L105 90L170 150" stroke="${p.ink}"/><path d="M190 150L255 90L320 150" stroke="${p.ink}"/>
+    <path d="M110 150L180 45L250 150" stroke="${p.acc}"/></g>${word(342, 56, p)}`,
+  houses: p => `<g transform="translate(120 98)" stroke-linejoin="round">
+    <path d="M45 150V105L105 55L165 105V150Z" fill="${p.ink}"/><path d="M195 150V105L255 55L315 105V150Z" fill="${p.ink}"/>
+    <path d="M112 150V85L180 27L248 85V150Z" fill="${p.acc}" stroke="${p.bg}" stroke-width="8"/>
+    <rect x="170" y="112" width="20" height="38" fill="${p.bg}"/></g>${word(342, 56, p)}`,
+  sign: p => `<g transform="translate(121 57) scale(1.12)">
+    <path d="M25 285H130" stroke="${p.acc}" stroke-width="8" stroke-linecap="round"/>
+    <path d="M60 30V285M60 60H290" fill="none" stroke="${p.ink}" stroke-width="14" stroke-linecap="round"/>
+    <path d="M110 60V92M260 60V92" stroke="${p.ink}" stroke-width="5"/>
+    <rect x="85" y="90" width="200" height="124" rx="8" fill="${p.acc}"/>
+    ${txt(185, 154, 58, 900, "#FFFFFF", "RTM")}${txt(188, 190, 22, 700, "#FFFFFF", "HOUSES", 6)}</g>`,
+  houseSign: p => `<g transform="translate(121 57) scale(1.12)">
+    <path d="M25 285H130" stroke="${p.acc}" stroke-width="8" stroke-linecap="round"/>
+    <path d="M60 30V285M60 60H290" fill="none" stroke="${p.ink}" stroke-width="14" stroke-linecap="round"/>
+    <path d="M110 60V112M260 60V112" stroke="${p.ink}" stroke-width="5"/>
+    <path d="M85 120L185 82L285 120V222H85Z" fill="${p.ink}" stroke="${p.ink}" stroke-width="8" stroke-linejoin="round"/>
+    ${txt(185, 176, 58, 900, p.on, "RTM")}${txt(188, 208, 22, 700, p.accOn, "HOUSES", 6)}</g>`
+};
+
+const OPTIONS = [
+  { id: "A", name: "Roofline, navy and teal",        svg: L.roofline(P.navy),     bg: P.navy.bg },
+  { id: "B", name: "Roofline, charcoal and orange",  svg: L.roofline(P.charDark), bg: P.charDark.bg },
+  { id: "C", name: "Roofline tile, green and gold",  svg: L.roofTile(P.forest),   bg: P.forest.bg },
+  { id: "D", name: "House badge, green and gold",    svg: L.badge(P.forest),      bg: P.forest.bg },
+  { id: "E", name: "Outline badge, blue and red",    svg: L.badgeOutline(P.royal), bg: P.royal.bg },
+  { id: "F", name: "Stacked badge, slate and sky",   svg: L.badgeStacked(P.slate), bg: P.slate.bg },
+  { id: "G", name: "Key house, black and gold",      svg: L.key(P.black),         bg: P.black.bg },
+  { id: "H", name: "Key house, navy reversed",       svg: L.key(P.navyDark),      bg: P.navyDark.bg },
+  { id: "I", name: "Three roofs, charcoal and orange", svg: L.roofs(P.charcoal),  bg: P.charcoal.bg },
+  { id: "J", name: "Three houses, blue and red",     svg: L.houses(P.royal),      bg: P.royal.bg },
+  { id: "K", name: "Yard sign, slate and sky",       svg: L.sign(P.slate),        bg: P.slate.bg },
+  { id: "L", name: "House sign, green and gold",     svg: L.houseSign(P.forest),  bg: P.forest.bg }
+];
+const BY_ID = Object.fromEntries(OPTIONS.map(o => [o.id, o]));
+const RANKS = [{ label: "1st", pts: 3 }, { label: "2nd", pts: 2 }, { label: "3rd", pts: 1 }];
+
+let picks = [];
+const $ = id => document.getElementById(id);
+const grid = $("grid"), slots = $("slots"), msg = $("msg"), voter = $("voter");
+
+function renderGrid() {
+  grid.innerHTML = OPTIONS.map(o => `
+    <button type="button" class="opt" data-id="${o.id}" aria-pressed="false">
+      <svg viewBox="0 0 600 450" font-family="Archivo, 'Arial Black', Arial, sans-serif" role="img" aria-label="Option ${o.id}: ${o.name}">
+        <rect width="600" height="450" fill="${o.bg}"/>${o.svg}
+      </svg>
+      <span class="cap"><span class="letter">${o.id}</span><span class="nm">${o.name}</span></span>
+    </button>`).join("");
+  grid.querySelectorAll(".opt").forEach(b => b.addEventListener("click", () => toggle(b.dataset.id)));
+}
+
+function toggle(id) {
+  const i = picks.indexOf(id);
+  if (i >= 0) picks.splice(i, 1);
+  else if (picks.length < 3) picks.push(id);
+  else return say("You already have three. Tap one of your picks to remove it first.", "err");
+  say("", "");
+  renderPicks();
+}
+
+function renderPicks() {
+  grid.querySelectorAll(".opt").forEach(b => {
+    const i = picks.indexOf(b.dataset.id);
+    b.classList.toggle("picked", i >= 0);
+    b.setAttribute("aria-pressed", i >= 0 ? "true" : "false");
+    const old = b.querySelector(".rank");
+    if (old) old.remove();
+    if (i >= 0) {
+      const tag = document.createElement("span");
+      tag.className = "rank";
+      tag.textContent = `${RANKS[i].label} · ${RANKS[i].pts} pt${RANKS[i].pts > 1 ? "s" : ""}`;
+      b.appendChild(tag);
+    }
+  });
+  slots.innerHTML = RANKS.map((r, i) => picks[i]
+    ? `<div class="slot full"><b>${r.label} (${r.pts}):</b> ${picks[i]}, ${BY_ID[picks[i]].name}</div>`
+    : `<div class="slot"><b>${r.label} (${r.pts}):</b> not picked yet</div>`).join("");
+}
+
+function say(text, kind) { msg.textContent = text; msg.className = "msg" + (kind ? " " + kind : ""); }
+
+
+$("ballot").addEventListener("submit", async e => {
+  e.preventDefault();
+  const name = voter.value.trim().replace(/\s+/g, " ");
+  if (picks.length < 3) return say(`Pick ${3 - picks.length} more before you submit.`, "err");
+  if (name.length < 2) { voter.focus(); return say("Enter your name so your vote counts once.", "err"); }
+  const btn = $("submit");
+  btn.disabled = true; say("Saving your vote...", "");
+  try {
+    const res = await fetch(API, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name, picks }) });
+    if (!res.ok) throw new Error(await res.text());
+    try { localStorage.setItem("rtmVoter", name); } catch (err) {}
+    say(`Vote saved for ${name}. Submit again under the same name to change it.`, "ok");
+    await showBoard();
+  } catch (err) {
+    say("Your vote did not save. Check your connection and submit again.", "err");
+  } finally { btn.disabled = false; }
+});
+
+async function showBoard() {
+  const board = $("board"), bars = $("bars"), note = $("voters");
+  board.hidden = false; $("toggle").textContent = "Refresh standings";
+  try {
+    const res = await fetch(API);
+    if (!res.ok) throw new Error(await res.text());
+    const rows = (await res.json()).votes || [];
+    const score = Object.fromEntries(OPTIONS.map(o => [o.id, { pts: 0, firsts: 0 }]));
+    rows.forEach(r => {
+      [r.first_pick, r.second_pick, r.third_pick].forEach((id, i) => { if (score[id]) score[id].pts += 3 - i; });
+      if (score[r.first_pick]) score[r.first_pick].firsts += 1;
+    });
+    const ranked = OPTIONS.map(o => ({ ...o, ...score[o.id] })).sort((a, b) => b.pts - a.pts || b.firsts - a.firsts || a.id.localeCompare(b.id));
+    const max = Math.max(1, ...ranked.map(r => r.pts));
+    bars.innerHTML = "";
+    ranked.forEach(r => {
+      const row = document.createElement("div");
+      row.className = "bar";
+      row.innerHTML = `<div class="who"><b>${r.id}</b> ${r.name}</div><div class="track"><div class="fill" style="width:${(r.pts / max) * 100}%"></div></div><div class="pts">${r.pts} pt${r.pts === 1 ? "" : "s"}</div>`;
+      bars.appendChild(row);
+    });
+    note.textContent = rows.length
+      ? `${rows.length} vote${rows.length === 1 ? "" : "s"} so far: ${rows.map(r => r.voter_name).join(", ")}. Ties break on the most first-place votes.`
+      : "No votes yet. Be the first.";
+  } catch (err) {
+    note.textContent = "Standings did not load. Tap Refresh standings to try again.";
+  }
+}
+
+$("toggle").addEventListener("click", showBoard);
+try { const saved = localStorage.getItem("rtmVoter"); if (saved) voter.value = saved; } catch (err) {}
+renderGrid();
+renderPicks();
+</script>
+</body>
+</html>
