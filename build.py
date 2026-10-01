@@ -344,13 +344,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   try {
     const unitId = (RT.applyUrl(l, map).match(/unitId=(\d+)/) || [])[1];
     if (unitId) {
-      const r = await fetch(RT.SB_URL + '/rest/v1/site_listing_photos?select=url,caption,kind,sort_order,width,height&unit_id=eq.' + unitId + '&order=kind.desc,sort_order.asc,id.asc', { headers: { apikey: RT.SB_KEY, Authorization: 'Bearer ' + RT.SB_KEY } });
+      const r = await fetch(RT.SB_URL + '/rest/v1/site_listing_photos?select=url,caption,kind,sort_order,width,height,rm_file_id&unit_id=eq.' + unitId + '&order=kind.desc,sort_order.asc,id.asc', { headers: { apikey: RT.SB_KEY, Authorization: 'Bearer ' + RT.SB_KEY } });
       if (r.ok) photos = await r.json();
     }
   } catch (e) {}
-  // prefer enhanced over original when both exist for the same shot; staged go last
-  const enhanced = photos.filter(p => p.kind === 'enhanced'), originals = photos.filter(p => p.kind === 'original'), staged = photos.filter(p => p.kind === 'staged');
-  photos = (enhanced.length ? enhanced : originals).concat(staged);
+  // per shot: enhanced version if it exists, else the original; staged shots go at the end
+  const sel = s => s.replace(/&select=[^&]*/, '');
+  const byFile = {}; photos.forEach(p => { if (p.kind === 'staged') return; const k = p.rm_file_id || p.url; if (!byFile[k] || p.kind === 'enhanced') byFile[k] = p; });
+  const main = Object.values(byFile).sort((a, b) => (a.sort_order - b.sort_order) || 0);
+  photos = main.concat(photos.filter(p => p.kind === 'staged'));
   if (!photos.length && l.photo) photos = [{ url: l.photo, caption: null, kind: 'original' }];
   let gi = 0;
   const gMain = $('#g-main'), gThumbs = $('#g-thumbs'), gCount = $('#g-count');

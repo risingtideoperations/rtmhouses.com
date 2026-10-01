@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Available houses for rent | Rising Tide Homes</title>
+<meta name="description" content="Every Rising Tide house available right now in Birmingham, Center Point, Trussville, Pelham, Gardendale and more. Filter by city, bedrooms and rent; book a showing in minutes.">
+<link rel="canonical" href="https://rtmhouses.com/homes.html">
+<meta property="og:title" content="Available houses for rent | Rising Tide Homes">
+<meta property="og:description" content="Every Rising Tide house available right now in Birmingham, Center Point, Trussville, Pelham, Gardendale and more. Filter by city, bedrooms and rent; book a showing in minutes.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://rtmhouses.com/homes.html">
+<meta property="og:image" content="https://rtmhouses.com/assets/og.jpg">
+<meta name="theme-color" content="#0B2545">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://app.tenantturner.com"><link rel="preconnect" href="https://ttimages.blob.core.windows.net">
+<link rel="stylesheet" href="css/site.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+</head>
+<body>
+<a class="sr" href="#main">Skip to content</a>
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="index.html" aria-label="Rising Tide Homes home"><img src="assets/logo-navy.png" srcset="assets/logo-navy@2x.png 2x" alt="Rising Tide" width="108" height="40"></a>
+    <nav class="nav" aria-label="Main">
+      <a href="homes.html">Available houses</a>
+      <a href="apply.html">How to apply</a>
+      <a href="residents.html">Residents</a>
+      <a href="https://occupi.app/" rel="noopener" data-track="click_pay">Pay rent</a>
+      <a href="contact.html">Contact</a>
+      <a class="btn btn-outline btn-sm" href="https://leasepg.twa.rentmanager.com/" rel="noopener" data-track="click_portal">Resident portal</a>
+      <a class="btn btn-primary btn-sm" href="homes.html">Find a house</a>
+    </nav>
+    <button class="menu-btn" aria-expanded="false" aria-controls="mnav">Menu <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+  </div>
+  <div class="mobile-nav" id="mnav" data-open="false">
+    <a href="homes.html">Available houses</a>
+    <a href="apply.html">How to apply</a>
+    <a href="https://occupi.app/" rel="noopener" data-track="click_pay">Pay rent here</a>
+    <a href="https://leasepg.twa.rentmanager.com/" rel="noopener" data-track="click_portal">Resident portal</a>
+    <a href="residents.html">Residents: repairs, forms, FAQ</a>
+    <a href="contact.html">Contact us</a>
+    <a href="careers.html">Jobs &amp; vendors</a>
+    <a class="btn btn-primary" href="homes.html">Find a house</a>
+  </div>
+</header>
+<main id="main">
+
+<div class="page-head"><div class="wrap"><h1>Available houses</h1><p>Live list — updated automatically as houses are listed and leased. Tap any house to see details and book a showing.</p></div></div>
+<div class="filters">
+  <div class="wrap">
+    <label class="sr" for="f-city">City</label><select id="f-city"><option value="">All cities</option></select>
+    <label class="sr" for="f-beds">Bedrooms</label><select id="f-beds"><option value="">Any beds</option><option value="2">2+ beds</option><option value="3">3+ beds</option><option value="4">4+ beds</option></select>
+    <label class="sr" for="f-max">Max rent</label><select id="f-max"><option value="">Any rent</option><option value="900">Up to $900</option><option value="1100">Up to $1,100</option><option value="1300">Up to $1,300</option><option value="1500">Up to $1,500</option><option value="2000">Up to $2,000</option></select>
+    <label class="sr" for="f-sort">Sort</label><select id="f-sort"><option value="new">Newest first</option><option value="rent-asc">Rent: low to high</option><option value="rent-desc">Rent: high to low</option><option value="beds">Most bedrooms</option></select>
+    <button class="clear" id="f-clear" type="button" hidden>Clear</button>
+    <span class="result" id="f-result"></span>
+  </div>
+</div>
+<section class="section-tight">
+  <div class="wrap">
+    <div class="map-wrap">
+      <div id="map" class="map" aria-label="Map of available houses"></div>
+      <div class="legend"><span><i class="pin now"></i>Available now</span><span><i class="pin soon"></i>Coming soon</span><button class="clear" id="map-toggle" type="button" aria-expanded="true">Hide map</button></div>
+    </div>
+    <div class="grid" id="grid" aria-live="polite"></div>
+    <p class="small muted" style="margin-top:1.5rem">Rent shown is the monthly rent. A $50 application fee applies per adult applicant. Your security deposit amount is set when your application is approved. Pets vary by house — see each listing. We do not currently have homes that accept Section 8 / Housing Choice Vouchers. <a href="apply.html">Full criteria</a>.</p>
+  </div>
+</section>
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  const q = new URLSearchParams(location.search);
+  const sel = { city: document.getElementById('f-city'), beds: document.getElementById('f-beds'), max: document.getElementById('f-max'), sort: document.getElementById('f-sort') };
+  const grid = document.getElementById('grid'), res = document.getElementById('f-result'), clear = document.getElementById('f-clear');
+  let all = []; try { all = await RT.listings(); } catch (e) {}
+  [...new Set(all.map(l => l.city).filter(Boolean))].sort().forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; sel.city.appendChild(o); });
+  // Map (Leaflet + OpenStreetMap). Green = available now, amber = coming soon.
+  let map = null, layer = null;
+  const soon = l => !!(l.available && !/now/i.test(l.available));
+  function drawMap(items) {
+    if (!window.L || !document.getElementById('map')) return;
+    if (!map) {
+      map = L.map('map', { scrollWheelZoom: false }).setView([33.52, -86.8], 10);
+      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', { attribution: 'Tiles &copy; Esri', maxZoom: 18 }).addTo(map);
+      layer = L.layerGroup().addTo(map);
+    }
+    layer.clearLayers();
+    const pts = [];
+    items.forEach(l => {
+      if (typeof l.lat !== 'number' || typeof l.lng !== 'number') return;
+      const color = soon(l) ? '#D9822B' : '#1E9E63';
+      const m = L.circleMarker([l.lat, l.lng], { radius: 9, color: '#fff', weight: 2, fillColor: color, fillOpacity: 1 });
+      m.bindPopup('<div class="pop">' + (l.photo ? '<img src="' + RT.esc(l.photo) + '" alt="">' : '') + '<b>' + RT.money(l.rent) + '/mo</b> · ' + (l.beds != null ? l.beds + ' bd' : '') + (l.baths != null ? ' / ' + l.baths + ' ba' : '') + '<br>' + RT.esc(l.address) + ', ' + RT.esc(l.city) + '<br><span class="' + (soon(l) ? 'soon' : 'now') + '">' + (soon(l) ? 'Coming ' + RT.esc(l.available) : 'Available now') + '</span><br><a href="' + RT.detailUrl(l) + '">Details</a> · <a href="' + RT.esc(l.schedule) + '" target="_blank" rel="noopener" data-track="click_schedule" data-listing="' + RT.esc(l.id) + '" data-addr="' + RT.esc(l.address) + '">Book a showing</a></div>', { maxWidth: 260 });
+      m.addTo(layer); pts.push([l.lat, l.lng]);
+    });
+    if (pts.length) map.fitBounds(pts, { padding: [30, 30], maxZoom: 13 });
+  }
+  const tog = document.getElementById('map-toggle');
+  tog.addEventListener('click', () => { const w = document.querySelector('.map-wrap'); const open = !w.classList.contains('collapsed'); w.classList.toggle('collapsed', open); tog.textContent = open ? 'Show map' : 'Hide map'; tog.setAttribute('aria-expanded', String(!open)); if (!open && map) setTimeout(() => map.invalidateSize(), 50); });
+  ['city','beds','max'].forEach(k => { if (q.get(k)) sel[k].value = q.get(k); });
+  const qtext = q.get('q') || '';
+  function sortList(items) {
+    const v = sel.sort.value;
+    if (v === 'rent-asc') items.sort((a,b)=>(a.rent||9e9)-(b.rent||9e9));
+    else if (v === 'rent-desc') items.sort((a,b)=>(b.rent||0)-(a.rent||0));
+    else if (v === 'beds') items.sort((a,b)=>(b.beds||0)-(a.beds||0));
+    return items;
+  }
+  async function run() {
+    const f = { city: sel.city.value, beds: sel.beds.value, max: sel.max.value, q: qtext };
+    const active = !!(f.city || f.beds || f.max || f.q);
+    clear.hidden = !active;
+    const umap = await RT.unitMap();
+    let items = sortList(RT.filter(all, f));
+    if (!all.length) { grid.innerHTML = '<div class="empty" style="grid-column:1/-1"><p><strong>The listing feed didn\'t load.</strong></p><p>Refresh the page, or see the live list at <a href="https://app.tenantturner.com/listings/risingtidemanagement" rel="noopener">our showing page</a>.</p></div>'; res.textContent=''; return; }
+    if (!items.length) grid.innerHTML = '<div class="empty" style="grid-column:1/-1"><p><strong>No houses match that search.</strong></p><p>Try fewer filters. New houses are listed most weeks.</p></div>';
+    else grid.innerHTML = items.map(l => RT.card(l, umap)).join('');
+    drawMap(items);
+    res.textContent = items.length + ' of ' + all.length + (qtext ? ' · “' + qtext + '”' : '');
+    const p = new URLSearchParams(); ['city','beds','max'].forEach(k => { if (f[k]) p.set(k, f[k]); }); if (qtext) p.set('q', qtext);
+    history.replaceState(null, '', location.pathname + (p.toString() ? '?' + p : ''));
+  }
+  Object.values(sel).forEach(s => s.addEventListener('change', () => { RT.track('search'); run(); }));
+  clear.addEventListener('click', () => { sel.city.value=''; sel.beds.value=''; sel.max.value=''; history.replaceState(null,'',location.pathname); location.reload(); });
+  run();
+});
+</script>
+
+</main>
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="cols">
+      <div>
+        <img src="assets/logo-white.png" srcset="assets/logo-white@2x.png 2x" alt="Rising Tide" width="135" height="50" style="margin-bottom:.75rem">
+        <p style="color:rgba(255,255,255,.75);max-width:34ch">Single-family rental homes in the Birmingham and Montgomery, Alabama areas. Locally owned and managed.</p>
+        <p style="color:rgba(255,255,255,.75)">790 Montclair Rd, Ste 215<br>Birmingham, AL 35213<br>Mon–Fri 8:00 am – 5:00 pm</p>
+      </div>
+      <div><h4>Renters</h4><a href="homes.html">Available houses</a><a href="apply.html">How to apply</a><a href="apply.html#criteria">Qualification criteria</a><a href="https://app.tenantturner.com/listings/risingtidemanagement" rel="noopener">Book a showing</a></div>
+      <div><h4>Residents</h4><a href="https://occupi.app/" rel="noopener" data-track="click_pay">Pay rent</a><a href="https://leasepg.twa.rentmanager.com/" rel="noopener" data-track="click_portal">Resident portal</a><a href="https://app.propertymeld.com/tenant/rising-tide-management" rel="noopener" data-track="click_maintenance">Request a repair</a><a href="residents.html#forms">Forms</a><a href="residents.html#faq">FAQ</a></div>
+      <div><h4>Company</h4><a href="contact.html">Contact</a><a href="careers.html">Jobs</a><a href="careers.html#vendors">Vendors</a><a href="tel:+12052089793" data-track="click_call">(205) 208-9793</a><a href="mailto:info@rtmhouses.com">info@rtmhouses.com</a></div>
+    </div>
+    <div class="legal">
+      <img src="assets/eho.png" alt="Equal Housing Opportunity">
+      <span>Equal Housing Opportunity. &copy; <span id="yr"></span> Rising Tide Management, LLC. All rights reserved.</span>
+    </div>
+  </div>
+</footer>
+<script>document.getElementById('yr').textContent=new Date().getFullYear()</script>
+<script src="js/site.js" defer></script>
+</body>
+</html>
