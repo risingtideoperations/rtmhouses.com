@@ -114,7 +114,7 @@ pages["index.html"] = head("Rising Tide Homes", "Houses for rent in Birmingham, 
       </form>
       <div class="hero-chips" id="chips"><a href="homes.html">All houses</a><a href="homes.html?beds=3">3+ bedrooms</a><a href="homes.html?max=1100">Under $1,100</a></div>
     </div>
-    <div class="mosaic" id="mosaic" aria-label="Some of our available houses"><a href="homes.html"></a><a href="homes.html"></a><a href="homes.html"></a><a href="homes.html"></a><a href="homes.html"></a></div>
+    <div class="mosaic" aria-hidden="true"><a href="homes.html" tabindex="-1"><img src="assets/hero-1.jpg" alt="" width="1000" height="667"></a><a href="homes.html" tabindex="-1"><img src="assets/hero-2.jpg" alt="" loading="lazy"></a><a href="homes.html" tabindex="-1"><img src="assets/hero-3.jpg" alt="" loading="lazy"></a><a href="homes.html" tabindex="-1"><img src="assets/hero-4.jpg" alt="" loading="lazy"></a><a href="homes.html" tabindex="-1"><img src="assets/hero-5.jpg" alt="" loading="lazy"></a></div>
   </div>
 </section>
 
@@ -123,7 +123,7 @@ pages["index.html"] = head("Rising Tide Homes", "Houses for rent in Birmingham, 
     <div class="band-grid">
       <div>
         <h2>Renting from us, in plain terms.</h2>
-        <p>We own and manage every house on this site. There's no agent in the middle and no office visit required — you deal with the people who actually fix things.</p>
+        <p>Every house on this site is managed by our Birmingham office. No outside agent in the middle and no office visit required — you deal with the people who actually schedule the repairs.</p>
       </div>
       <ul class="plain">
         <li><b>See it today.</b> Self-guided showings seven days a week, 8 am to 8 pm. You get the lockbox code by text.</li>
@@ -187,9 +187,6 @@ document.addEventListener('DOMContentLoaded', async () => {{
   RT.renderGrid(document.getElementById('featured'), {{ limit: 6 }});
   try {{
     const all = await RT.listings();
-    const withPhoto = all.filter(l => l.photo).slice(0, 5);
-    const m = document.getElementById('mosaic');
-    if (withPhoto.length >= 3) m.innerHTML = withPhoto.map(l => '<a href="' + RT.detailUrl(l) + '" data-track="click_listing" data-listing="' + RT.esc(l.id) + '" data-addr="' + RT.esc(l.address) + '"><img src="' + RT.esc(l.photo) + '" alt="' + RT.esc(l.address + ', ' + l.city) + '"><span class="lab">' + RT.esc(l.address) + ' · ' + RT.money(l.rent) + '/mo</span></a>').join('');
     const cities = [...new Set(all.map(l => l.city).filter(Boolean))].sort();
     const chips = document.getElementById('chips');
     cities.slice(0, 3).forEach(c => {{ const a = document.createElement('a'); a.href = 'homes.html?city=' + encodeURIComponent(c); a.textContent = c; chips.appendChild(a); }});
@@ -288,7 +285,12 @@ pages["home.html"] = head("House details", "House for rent from Rising Tide Home
 <section class="section-tight">
   <div class="wrap">
     <div class="detail">
-      <div class="d-photo"><div class="photo" id="h-photo"></div></div>
+      <div class="d-photo">
+        <div class="gallery" id="gal">
+          <div class="photo main"><img id="g-main" alt=""><button class="gnav prev" id="g-prev" type="button" aria-label="Previous photo">&#8249;</button><button class="gnav next" id="g-next" type="button" aria-label="Next photo">&#8250;</button><span class="gcount" id="g-count"></span></div>
+          <div class="thumbs" id="g-thumbs"></div>
+        </div>
+      </div>
       <aside class="d-side">
         <div class="panel sticky">
           <div class="rent" id="h-rent"></div>
@@ -326,7 +328,7 @@ pages["home.html"] = head("House details", "House for rent from Rising Tide Home
 <script>
 document.addEventListener('DOMContentLoaded', async () => {
   const id = new URLSearchParams(location.search).get('id');
-  const $ = s => document.querySelector(s);
+  const $ = s => document.querySelector(s), $$ = s => Array.from(document.querySelectorAll(s));
   let list = [], map = {};
   try { [list, map] = await Promise.all([RT.listings(), RT.unitMap()]); } catch (e) {}
   const l = list.find(x => x.id === String(id));
@@ -337,7 +339,35 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
   document.title = l.address + ', ' + l.city + ' — ' + RT.money(l.rent) + '/mo | Rising Tide Homes';
   $('#bc').textContent = l.address; $('#h-addr').textContent = l.address; $('#h-city').textContent = l.city + ', ' + l.state + ' ' + l.zip;
-  $('#h-photo').innerHTML = l.photo ? '<img src="' + RT.esc(l.photo) + '" alt="' + RT.esc(l.address) + '">' : '';
+  // Gallery: every Rent Manager photo for this unit (from site_listing_photos), falling back to the Tenant Turner photo
+  let photos = [];
+  try {
+    const unitId = (RT.applyUrl(l, map).match(/unitId=(\d+)/) || [])[1];
+    if (unitId) {
+      const r = await fetch(RT.SB_URL + '/rest/v1/site_listing_photos?select=url,caption,kind,sort_order,width,height&unit_id=eq.' + unitId + '&order=kind.desc,sort_order.asc,id.asc', { headers: { apikey: RT.SB_KEY, Authorization: 'Bearer ' + RT.SB_KEY } });
+      if (r.ok) photos = await r.json();
+    }
+  } catch (e) {}
+  // prefer enhanced over original when both exist for the same shot; staged go last
+  const enhanced = photos.filter(p => p.kind === 'enhanced'), originals = photos.filter(p => p.kind === 'original'), staged = photos.filter(p => p.kind === 'staged');
+  photos = (enhanced.length ? enhanced : originals).concat(staged);
+  if (!photos.length && l.photo) photos = [{ url: l.photo, caption: null, kind: 'original' }];
+  let gi = 0;
+  const gMain = $('#g-main'), gThumbs = $('#g-thumbs'), gCount = $('#g-count');
+  function show(i) {
+    if (!photos.length) return; gi = (i + photos.length) % photos.length; const ph = photos[gi];
+    gMain.src = ph.url; gMain.alt = (ph.caption ? ph.caption + ' — ' : '') + l.address + (ph.kind === 'staged' ? ' (virtually staged)' : '');
+    gCount.textContent = (gi + 1) + ' / ' + photos.length + (ph.kind === 'staged' ? ' · Virtually staged' : '');
+    $$('#g-thumbs button').forEach((b, k) => b.setAttribute('aria-current', k === gi ? 'true' : 'false'));
+    const cur = gThumbs.children[gi]; if (cur) gThumbs.scrollTo({ left: cur.offsetLeft - gThumbs.clientWidth / 2 + cur.offsetWidth / 2, behavior: 'smooth' });
+  }
+  gThumbs.innerHTML = photos.map((ph, k) => '<button type="button" aria-label="Photo ' + (k + 1) + '"><img src="' + RT.esc(ph.url) + '" alt="" loading="lazy"></button>').join('');
+  $$('#g-thumbs button').forEach((b, k) => b.addEventListener('click', () => show(k)));
+  $('#g-prev').addEventListener('click', () => show(gi - 1)); $('#g-next').addEventListener('click', () => show(gi + 1));
+  document.addEventListener('keydown', e => { if (e.key === 'ArrowLeft') show(gi - 1); if (e.key === 'ArrowRight') show(gi + 1); });
+  let tx = null; gMain.addEventListener('touchstart', e => { tx = e.touches[0].clientX; }, { passive: true }); gMain.addEventListener('touchend', e => { if (tx == null) return; const dx = e.changedTouches[0].clientX - tx; if (Math.abs(dx) > 40) show(gi + (dx < 0 ? 1 : -1)); tx = null; }, { passive: true });
+  if (photos.length < 2) { $('#g-prev').hidden = true; $('#g-next').hidden = true; gThumbs.hidden = true; }
+  show(0);
   $('#h-desc').textContent = l.description || '';
   $('#h-rent').innerHTML = RT.money(l.rent) + ' <span>/ month</span>';
   const b = l.baths == null ? '' : (l.baths % 1 === 0 ? l.baths.toFixed(0) : l.baths.toFixed(1));

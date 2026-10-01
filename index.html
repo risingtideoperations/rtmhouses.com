@@ -61,7 +61,7 @@
       </form>
       <div class="hero-chips" id="chips"><a href="homes.html">All houses</a><a href="homes.html?beds=3">3+ bedrooms</a><a href="homes.html?max=1100">Under $1,100</a></div>
     </div>
-    <div class="mosaic" id="mosaic" aria-label="Some of our available houses"><a href="homes.html"></a><a href="homes.html"></a><a href="homes.html"></a><a href="homes.html"></a><a href="homes.html"></a></div>
+    <div class="mosaic" aria-hidden="true"><a href="homes.html" tabindex="-1"><img src="assets/hero-1.jpg" alt="" width="1000" height="667"></a><a href="homes.html" tabindex="-1"><img src="assets/hero-2.jpg" alt="" loading="lazy"></a><a href="homes.html" tabindex="-1"><img src="assets/hero-3.jpg" alt="" loading="lazy"></a><a href="homes.html" tabindex="-1"><img src="assets/hero-4.jpg" alt="" loading="lazy"></a><a href="homes.html" tabindex="-1"><img src="assets/hero-5.jpg" alt="" loading="lazy"></a></div>
   </div>
 </section>
 
@@ -70,7 +70,7 @@
     <div class="band-grid">
       <div>
         <h2>Renting from us, in plain terms.</h2>
-        <p>We own and manage every house on this site. There's no agent in the middle and no office visit required — you deal with the people who actually fix things.</p>
+        <p>Every house on this site is managed by our Birmingham office. No outside agent in the middle and no office visit required — you deal with the people who actually schedule the repairs.</p>
       </div>
       <ul class="plain">
         <li><b>See it today.</b> Self-guided showings seven days a week, 8 am to 8 pm. You get the lockbox code by text.</li>
@@ -134,9 +134,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   RT.renderGrid(document.getElementById('featured'), { limit: 6 });
   try {
     const all = await RT.listings();
-    const withPhoto = all.filter(l => l.photo).slice(0, 5);
-    const m = document.getElementById('mosaic');
-    if (withPhoto.length >= 3) m.innerHTML = withPhoto.map(l => '<a href="' + RT.detailUrl(l) + '" data-track="click_listing" data-listing="' + RT.esc(l.id) + '" data-addr="' + RT.esc(l.address) + '"><img src="' + RT.esc(l.photo) + '" alt="' + RT.esc(l.address + ', ' + l.city) + '"><span class="lab">' + RT.esc(l.address) + ' · ' + RT.money(l.rent) + '/mo</span></a>').join('');
     const cities = [...new Set(all.map(l => l.city).filter(Boolean))].sort();
     const chips = document.getElementById('chips');
     cities.slice(0, 3).forEach(c => { const a = document.createElement('a'); a.href = 'homes.html?city=' + encodeURIComponent(c); a.textContent = c; chips.appendChild(a); });
