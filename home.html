@@ -113,7 +113,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   ['#h-apply', '#m-apply'].forEach(s => { const a = $(s); a.href = apply; a.dataset.listing = l.id; a.dataset.addr = l.address; });
   $('#h-map').href = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(l.address + ', ' + l.city + ', ' + l.state + ' ' + l.zip);
   if (l.rent) {
-    const q = [['Take-home income', 'at least ' + RT.money(l.rent * 3) + ' / month (3× rent)'], ['Application fee', '$50 per adult, non-refundable'], ['Security deposit', RT.money(l.rent) + ' (one month)'], ['Due at move-in', RT.money(l.rent * 2) + ' — first month + deposit'], ['Credit', 'FICO 600+ is the usual floor'], ['Pets', 'with approval: $250 fee + monthly pet rent per pet']];
+    const q = [['Take-home income', 'at least ' + RT.money(l.rent * 3) + ' / month (3× rent)'], ['Application fee', '$50 per adult, non-refundable'], ['Security deposit', RT.money(l.rent) + ' (one month)'], ['Due at move-in', RT.money(l.rent * 2) + ' — first month + deposit'], ['Credit', 'FICO 600+ is the usual floor'], ['Pets', 'with approval: $250 fee + $25/mo per pet']];
     $('#h-qual').innerHTML = q.map(x => '<dt>' + RT.esc(x[0]) + '</dt><dd>' + RT.esc(x[1]) + '</dd>').join('');
   }
   $('#mcta').hidden = false; document.body.classList.add('has-mobile-cta');
