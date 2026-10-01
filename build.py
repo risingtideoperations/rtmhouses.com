@@ -200,7 +200,7 @@ document.addEventListener('DOMContentLoaded', async () => {{
 ''' + foot()
 
 # ---------------- homes ----------------
-pages["homes.html"] = head("Available houses for rent", "Every Rising Tide house available right now in Birmingham, Center Point, Trussville, Pelham, Gardendale and more. Filter by city, bedrooms and rent; book a showing in minutes.", "homes.html") + '''
+pages["homes.html"] = head("Available houses for rent", "Every Rising Tide house available right now in Birmingham, Center Point, Trussville, Pelham, Gardendale and more. Filter by city, bedrooms and rent; book a showing in minutes.", "homes.html", '<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>') + '''
 <div class="page-head"><div class="wrap"><h1>Available houses</h1><p>Live list — updated automatically as houses are listed and leased. Tap any house to see details and book a showing.</p></div></div>
 <div class="filters">
   <div class="wrap">
@@ -214,6 +214,10 @@ pages["homes.html"] = head("Available houses for rent", "Every Rising Tide house
 </div>
 <section class="section-tight">
   <div class="wrap">
+    <div class="map-wrap">
+      <div id="map" class="map" aria-label="Map of available houses"></div>
+      <div class="legend"><span><i class="pin now"></i>Available now</span><span><i class="pin soon"></i>Coming soon</span><button class="clear" id="map-toggle" type="button" aria-expanded="true">Hide map</button></div>
+    </div>
     <div class="grid" id="grid" aria-live="polite"></div>
     <p class="small muted" style="margin-top:1.5rem">Rent shown is the monthly rent. A $50 application fee applies per adult applicant. Security deposit is typically one month's rent. Pets and vouchers vary by house — see each listing. <a href="apply.html">Full criteria</a>.</p>
   </div>
@@ -225,6 +229,29 @@ document.addEventListener('DOMContentLoaded', async () => {
   const grid = document.getElementById('grid'), res = document.getElementById('f-result'), clear = document.getElementById('f-clear');
   let all = []; try { all = await RT.listings(); } catch (e) {}
   [...new Set(all.map(l => l.city).filter(Boolean))].sort().forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; sel.city.appendChild(o); });
+  // Map (Leaflet + OpenStreetMap). Green = available now, amber = coming soon.
+  let map = null, layer = null;
+  const soon = l => !!(l.available && !/now/i.test(l.available));
+  function drawMap(items) {
+    if (!window.L || !document.getElementById('map')) return;
+    if (!map) {
+      map = L.map('map', { scrollWheelZoom: false }).setView([33.52, -86.8], 10);
+      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>', maxZoom: 18 }).addTo(map);
+      layer = L.layerGroup().addTo(map);
+    }
+    layer.clearLayers();
+    const pts = [];
+    items.forEach(l => {
+      if (typeof l.lat !== 'number' || typeof l.lng !== 'number') return;
+      const color = soon(l) ? '#D9822B' : '#1E9E63';
+      const m = L.circleMarker([l.lat, l.lng], { radius: 9, color: '#fff', weight: 2, fillColor: color, fillOpacity: 1 });
+      m.bindPopup('<div class="pop">' + (l.photo ? '<img src="' + RT.esc(l.photo) + '" alt="">' : '') + '<b>' + RT.money(l.rent) + '/mo</b> · ' + (l.beds != null ? l.beds + ' bd' : '') + (l.baths != null ? ' / ' + l.baths + ' ba' : '') + '<br>' + RT.esc(l.address) + ', ' + RT.esc(l.city) + '<br><span class="' + (soon(l) ? 'soon' : 'now') + '">' + (soon(l) ? 'Coming ' + RT.esc(l.available) : 'Available now') + '</span><br><a href="' + RT.detailUrl(l) + '">Details</a> · <a href="' + RT.esc(l.schedule) + '" target="_blank" rel="noopener" data-track="click_schedule" data-listing="' + RT.esc(l.id) + '" data-addr="' + RT.esc(l.address) + '">Book a showing</a></div>', { maxWidth: 260 });
+      m.addTo(layer); pts.push([l.lat, l.lng]);
+    });
+    if (pts.length) map.fitBounds(pts, { padding: [30, 30], maxZoom: 13 });
+  }
+  const tog = document.getElementById('map-toggle');
+  tog.addEventListener('click', () => { const w = document.querySelector('.map-wrap'); const open = !w.classList.contains('collapsed'); w.classList.toggle('collapsed', open); tog.textContent = open ? 'Show map' : 'Hide map'; tog.setAttribute('aria-expanded', String(!open)); if (!open && map) setTimeout(() => map.invalidateSize(), 50); });
   ['city','beds','max'].forEach(k => { if (q.get(k)) sel[k].value = q.get(k); });
   const qtext = q.get('q') || '';
   function sortList(items) {
@@ -238,11 +265,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     const f = { city: sel.city.value, beds: sel.beds.value, max: sel.max.value, q: qtext };
     const active = !!(f.city || f.beds || f.max || f.q);
     clear.hidden = !active;
-    const map = await RT.unitMap();
+    const umap = await RT.unitMap();
     let items = sortList(RT.filter(all, f));
     if (!all.length) { grid.innerHTML = '<div class="empty" style="grid-column:1/-1"><p><strong>The listing feed didn\\'t load.</strong></p><p>Refresh the page, or see the live list at <a href="https://app.tenantturner.com/listings/risingtidemanagement" rel="noopener">our showing page</a>.</p></div>'; res.textContent=''; return; }
     if (!items.length) grid.innerHTML = '<div class="empty" style="grid-column:1/-1"><p><strong>No houses match that search.</strong></p><p>Try fewer filters. New houses are listed most weeks.</p></div>';
-    else grid.innerHTML = items.map(l => RT.card(l, map)).join('');
+    else grid.innerHTML = items.map(l => RT.card(l, umap)).join('');
+    drawMap(items);
     res.textContent = items.length + ' of ' + all.length + (qtext ? ' · “' + qtext + '”' : '');
     const p = new URLSearchParams(); ['city','beds','max'].forEach(k => { if (f[k]) p.set(k, f[k]); }); if (qtext) p.set('q', qtext);
     history.replaceState(null, '', location.pathname + (p.toString() ? '?' + p : ''));

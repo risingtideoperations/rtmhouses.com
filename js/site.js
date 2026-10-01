@@ -105,7 +105,7 @@
     if (l.beds != null) facts.push('<span>' + l.beds + ' bed' + (l.beds === 1 ? '' : 's') + '</span>');
     if (l.baths != null) facts.push('<span>' + fmtBath(l.baths) + ' bath' + (l.baths === 1 ? '' : 's') + '</span>');
     if (l.type) facts.push('<span>' + esc(l.type) + '</span>');
-    const tag = l.offer ? '<span class="tag offer">Special offer</span>' : (l.available && /now/i.test(l.available) ? '<span class="tag">Available now</span>' : (l.available ? '<span class="tag">Available ' + esc(l.available) + '</span>' : ''));
+    const tag = l.offer ? '<span class="tag offer">Special offer</span>' : (l.available && /now/i.test(l.available) ? '<span class="tag">Available now</span>' : (l.available ? '<span class="tag soon">Coming ' + esc(l.available) + '</span>' : ''));
     return '<article class="card">' +
       '<a class="photo" href="' + RT.detailUrl(l) + '" data-track="click_listing" data-listing="' + esc(l.id) + '" data-addr="' + esc(l.address) + '" aria-label="' + esc(l.address) + '">' +
         (l.photo ? '<img src="' + esc(l.photo) + '" alt="' + esc(l.address) + '" loading="lazy">' : '') + tag + '</a>' +
