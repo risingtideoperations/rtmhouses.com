@@ -293,3 +293,14 @@ details p{color:var(--grey);margin:0 0 1.1rem}
 .thumbs button{flex:none;width:92px;height:68px;border-radius:10px;overflow:hidden;border:2px solid transparent;padding:0;background:var(--line-2);cursor:pointer}
 .thumbs button img{width:100%;height:100%;object-fit:cover;display:block}
 .thumbs button[aria-current="true"]{border-color:var(--blue)}
+
+/* Move-in specials + price drops (written by the rent pricing agent) */
+.card .tag.drop{background:var(--green);color:#fff}
+.card .rent .was,.panel .rent .was{font-size:.95rem;font-weight:500;color:var(--grey-2);text-decoration:line-through;margin-left:.35rem;letter-spacing:0}
+.panel .rent .was{font-size:1.05rem}
+.card .deal{font-size:.88rem;font-weight:600;color:var(--coral)}
+.promo{background:#FBEDE6;border:1px solid #F0CDBD;border-radius:var(--r);padding:.8rem .95rem;margin:0 0 1.1rem;color:var(--ink)}
+.promo b{display:block;font-size:1.12rem;color:#A8431C;line-height:1.25}
+.promo span{display:block;font-size:.88rem;color:var(--grey);line-height:1.45;margin-top:.25rem}
+.promo.drop{background:#E8F4EF;border-color:#C5E0D5}
+.promo.drop b{color:#17664A}

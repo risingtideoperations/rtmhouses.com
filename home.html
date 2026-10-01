@@ -60,6 +60,7 @@
       </div>
       <aside class="d-side">
         <div class="panel sticky">
+          <div id="h-promo" hidden></div>
           <div class="rent" id="h-rent"></div>
           <div class="facts" id="h-facts"></div>
           <div class="actions">
@@ -136,17 +137,18 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (photos.length < 2) { $('#g-prev').hidden = true; $('#g-next').hidden = true; gThumbs.hidden = true; }
   show(0);
   $('#h-desc').textContent = l.description || '';
-  $('#h-rent').innerHTML = RT.money(l.rent) + ' <span>/ month</span>';
+  $('#h-rent').innerHTML = RT.money(l.rent) + ' <span>/ month</span>' + (l.drop ? ' <s class="was">' + RT.money(l.drop.old) + '</s>' : '');
+  RT.promoBanner($('#h-promo'), l);
   const b = l.baths == null ? '' : (l.baths % 1 === 0 ? l.baths.toFixed(0) : l.baths.toFixed(1));
   $('#h-facts').innerHTML = (l.beds != null ? '<div><b>' + l.beds + '</b>beds</div>' : '') + (b ? '<div><b>' + b + '</b>baths</div>' : '') + '<div><b>' + RT.esc(l.available || 'Now') + '</b>available</div>';
-  const kv = [['Type', l.type], ['Rent', RT.money(l.rent) + ' / month'], ['Fees', l.fees], ['Pets', l.pets], ['Special offer', l.offer], ['Listed', l.activated]].filter(x => x[1]);
+  const kv = [['Type', l.type], ['Rent', RT.money(l.rent) + ' / month'], ['Fees', l.fees], ['Pets', l.pets], ['Special offer', l.special ? l.special.headline + ' — apply by ' + l.special.endsFmt : l.offer], ['Listed', l.activated]].filter(x => x[1]);
   $('#h-kv').innerHTML = kv.map(x => '<dt>' + RT.esc(x[0]) + '</dt><dd>' + RT.esc(x[1]) + '</dd>').join('');
   const apply = RT.applyUrl(l, map);
   ['#h-sched', '#m-sched'].forEach(s => { const a = $(s); a.href = l.schedule; a.dataset.listing = l.id; a.dataset.addr = l.address; });
   ['#h-apply', '#m-apply'].forEach(s => { const a = $(s); a.href = apply; a.dataset.listing = l.id; a.dataset.addr = l.address; });
   $('#h-map').href = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(l.address + ', ' + l.city + ', ' + l.state + ' ' + l.zip);
   if (l.rent) {
-    const q = [['Take-home income', 'at least ' + RT.money(l.rent * 3) + ' / month (3× rent)'], ['Application fee', '$50 per adult, non-refundable'], ['Security deposit', 'set when your application is approved'], ['Due at move-in', 'first month + security deposit'], ['Credit', 'FICO under 600 is reviewed case by case'], ['Pets', 'with approval: $250 fee + $25/mo per pet']];
+    const q = [['Take-home income', 'at least ' + RT.money(l.rent * 3) + ' / month (3× rent)'], ['Application fee', '$50 per adult, non-refundable'], ['Security deposit', 'set when your application is approved'], ['Due at move-in', l.special && l.special.amount ? 'first month (less the ' + RT.money(l.special.amount) + ' special) + security deposit' : 'first month + security deposit'], ['Credit', 'FICO under 600 is reviewed case by case'], ['Pets', 'with approval: $250 fee + $25/mo per pet']];
     $('#h-qual').innerHTML = q.map(x => '<dt>' + RT.esc(x[0]) + '</dt><dd>' + RT.esc(x[1]) + '</dd>').join('');
   }
   $('#mcta').hidden = false; document.body.classList.add('has-mobile-cta');

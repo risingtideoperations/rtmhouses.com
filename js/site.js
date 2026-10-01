@@ -1,6 +1,8 @@
 /* Rising Tide Homes — shared site script
    Listings come live from Tenant Turner's public feed (no key, no rebuilds).
    Apply links use Rent Manager unit ids from a read-only Supabase view.
+   Move-in specials and price drops come from Supabase site_specials / site_price_changes,
+   which the rent pricing agent writes; they expire on their own.
    Analytics: page views + CTA clicks go to Supabase site_events (insert-only). */
 (function () {
   'use strict';
@@ -25,7 +27,9 @@
   const addrKey = a => String(a || '').toLowerCase().replace(/[^a-z0-9]+/g, '');
   const num = v => { const n = parseFloat(v); return isFinite(n) ? n : null; };
   const fmtBath = v => { const n = num(v); if (n == null) return ''; return (n % 1 === 0 ? n.toFixed(0) : n.toFixed(1)); };
-  RT.esc = esc; RT.money = money;
+  const shortKey = a => { const t = String(a || '').toLowerCase().split(/\s+/).filter(Boolean); return t.length >= 2 ? (t[0] + t[1]).replace(/[^a-z0-9]/g, '') : ''; };
+  const fmtDay = d => { try { const x = new Date(d + 'T12:00:00'); return x.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); } catch (e) { return ''; } };
+  RT.esc = esc; RT.money = money; RT._shortKey = shortKey;
 
   /* ---------- analytics (fire-and-forget, never blocks) ---------- */
   const sid = (() => { try { let s = sessionStorage.getItem('rt_sid'); if (!s) { s = Math.random().toString(36).slice(2) + Date.now().toString(36); sessionStorage.setItem('rt_sid', s); } return s; } catch (e) { return 'na'; } })();
@@ -52,11 +56,44 @@
     RT.track(a.getAttribute('data-track'), { listing_id: a.getAttribute('data-listing') || null, listing_address: a.getAttribute('data-addr') || null });
   }, true);
 
+  /* ---------- specials + price drops (never blocks the listings) ---------- */
+  let promoCache = null;
+  RT.promos = async function () {
+    if (promoCache) return promoCache;
+    try { const c = sessionStorage.getItem('rt_promos'); if (c) { const o = JSON.parse(c); if (Date.now() - o.t < 5 * 60 * 1000) { promoCache = o.d; return promoCache; } } } catch (e) {}
+    const h = { apikey: RT.SB_KEY, Authorization: 'Bearer ' + RT.SB_KEY };
+    const get = async path => { const ctl = new AbortController(); const to = setTimeout(() => ctl.abort(), 3000); try { const r = await fetch(RT.SB_URL + '/rest/v1/' + path, { headers: h, signal: ctl.signal }); return r.ok ? await r.json() : []; } catch (e) { return []; } finally { clearTimeout(to); } };
+    const [specials, drops] = await Promise.all([
+      get('site_specials?select=tt_listing_id,address,address_key,amount,headline,terms,ends_on&order=starts_on.desc'),
+      get('site_price_changes?select=tt_listing_id,address,address_key,old_rent,new_rent,changed_on&order=changed_on.desc,old_rent.desc')
+    ]);
+    promoCache = { specials: Array.isArray(specials) ? specials : [], drops: Array.isArray(drops) ? drops : [] };
+    try { sessionStorage.setItem('rt_promos', JSON.stringify({ t: Date.now(), d: promoCache })); } catch (e) {}
+    return promoCache;
+  };
+  function decorate(list, promos) {
+    const find = (rows, l) => {
+      const k = addrKey(l.address), sk = shortKey(l.address);
+      return rows.find(r => r.address_key && r.address_key === k) ||
+             rows.find(r => r.tt_listing_id && String(r.tt_listing_id) === l.id && shortKey(r.address) === sk) ||
+             (sk ? (m => m.length === 1 ? m[0] : null)(rows.filter(r => shortKey(r.address) === sk)) : null) || null;
+    };
+    list.forEach(l => {
+      const sp = find(promos.specials, l);
+      l.special = sp ? { headline: sp.headline, terms: sp.terms, amount: Number(sp.amount) || 0, ends: sp.ends_on, endsFmt: fmtDay(sp.ends_on) } : null;
+      const d = find(promos.drops, l);
+      // only once Tenant Turner is actually showing the lower price
+      l.drop = (d && l.rent != null && Number(d.old_rent) > l.rent) ? { old: Number(d.old_rent) } : null;
+    });
+    return list;
+  }
+
   /* ---------- listings ---------- */
   let feedCache = null, mapCache = null;
   RT.listings = async function () {
     if (feedCache) return feedCache;
-    try { const c = sessionStorage.getItem('rt_feed'); if (c) { const o = JSON.parse(c); if (Date.now() - o.t < 5 * 60 * 1000) { feedCache = o.d; return feedCache; } } } catch (e) {}
+    const promoP = RT.promos().catch(() => ({ specials: [], drops: [] }));
+    try { const c = sessionStorage.getItem('rt_feed'); if (c) { const o = JSON.parse(c); if (Date.now() - o.t < 5 * 60 * 1000) { feedCache = decorate(o.d, await promoP); return feedCache; } } } catch (e) {}
     const r = await fetch(RT.TT_FEED, { cache: 'no-store' });
     if (!r.ok) throw new Error('feed ' + r.status);
     const raw = await r.json();
@@ -69,9 +106,9 @@
     })).filter(x => x.address);
     // newest first
     list.sort((a, b) => (Date.parse(b.activated) || 0) - (Date.parse(a.activated) || 0));
-    feedCache = list;
     try { sessionStorage.setItem('rt_feed', JSON.stringify({ t: Date.now(), d: list })); } catch (e) {}
-    return list;
+    feedCache = decorate(list, await promoP);
+    return feedCache;
   };
   RT.unitMap = async function () {
     if (mapCache) return mapCache;
@@ -82,8 +119,6 @@
         const r = await fetch(RT.SB_URL + '/rest/v1/site_unit_map?select=address_key,address,unit_id&order=unit_id&limit=1000&offset=' + off, { headers: h });
         const page = r.ok ? await r.json() : []; rows = rows.concat(page); if (page.length < 1000) break; off += 1000;
       }
-      const shortKey = a => { const t = String(a || '').toLowerCase().split(/\s+/).filter(Boolean); return t.length >= 2 ? (t[0] + t[1]).replace(/[^a-z0-9]/g, '') : ''; };
-      RT._shortKey = shortKey;
       mapCache = {}; const short = {};
       rows.forEach(row => { if (!row.address_key) return; if (!(row.address_key in mapCache)) mapCache[row.address_key] = row.unit_id; const sk = shortKey(row.address); if (sk) (short[sk] = short[sk] || []).push(row.unit_id); });
       mapCache.__short = short;
@@ -105,12 +140,13 @@
     if (l.beds != null) facts.push('<span>' + l.beds + ' bed' + (l.beds === 1 ? '' : 's') + '</span>');
     if (l.baths != null) facts.push('<span>' + fmtBath(l.baths) + ' bath' + (l.baths === 1 ? '' : 's') + '</span>');
     if (l.type) facts.push('<span>' + esc(l.type) + '</span>');
-    const tag = l.offer ? '<span class="tag offer">Special offer</span>' : (l.available && /now/i.test(l.available) ? '<span class="tag">Available now</span>' : (l.available ? '<span class="tag soon">Coming ' + esc(l.available) + '</span>' : ''));
+    const tag = l.special ? '<span class="tag offer">' + esc(l.special.headline) + '</span>' : l.offer ? '<span class="tag offer">Special offer</span>' : l.drop ? '<span class="tag drop">Price reduced</span>' : (l.available && /now/i.test(l.available) ? '<span class="tag">Available now</span>' : (l.available ? '<span class="tag soon">Coming ' + esc(l.available) + '</span>' : ''));
     return '<article class="card">' +
       '<a class="photo" href="' + RT.detailUrl(l) + '" data-track="click_listing" data-listing="' + esc(l.id) + '" data-addr="' + esc(l.address) + '" aria-label="' + esc(l.address) + '">' +
         (l.photo ? '<img src="' + esc(l.photo) + '" alt="' + esc(l.address) + '" loading="lazy">' : '') + tag + '</a>' +
       '<div class="body">' +
-        '<div class="rent">' + money(l.rent) + '<span>/mo</span></div>' +
+        '<div class="rent">' + money(l.rent) + '<span>/mo</span>' + (l.drop ? ' <s class="was">' + money(l.drop.old) + '</s>' : '') + '</div>' +
+        (l.special && l.special.endsFmt ? '<div class="deal">Apply by ' + esc(l.special.endsFmt) + '</div>' : '') +
         '<div class="facts">' + facts.join('') + '</div>' +
         '<a class="addr" href="' + RT.detailUrl(l) + '">' + esc(l.address) + '</a>' +
         '<div class="city">' + esc(l.city) + ', ' + esc(l.state) + ' ' + esc(l.zip) + '</div>' +
@@ -119,6 +155,14 @@
           '<a class="btn btn-outline" href="' + esc(RT.applyUrl(l, map)) + '" target="_blank" rel="noopener" data-track="click_apply" data-listing="' + esc(l.id) + '" data-addr="' + esc(l.address) + '">Apply</a>' +
         '</div>' +
       '</div></article>';
+  };
+
+  RT.promoBanner = function (el, l) {
+    if (!el) return;
+    if (l.special) { el.className = 'promo'; el.innerHTML = '<b>' + esc(l.special.headline) + '</b><span>' + esc(l.special.terms) + '</span>'; el.hidden = false; }
+    else if (l.offer) { el.className = 'promo'; el.innerHTML = '<b>Special offer</b><span>' + esc(l.offer) + '</span>'; el.hidden = false; }
+    else if (l.drop) { el.className = 'promo drop'; el.innerHTML = '<b>Price reduced</b><span>Was ' + money(l.drop.old) + ' a month.</span>'; el.hidden = false; }
+    else { el.hidden = true; }
   };
 
   RT.filter = function (list, f) {
