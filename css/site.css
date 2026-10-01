@@ -47,8 +47,11 @@ p{margin:0 0 1em} .lede{font-size:1.2rem;color:var(--grey);max-width:58ch;line-h
 .nav{display:none;gap:1.6rem;align-items:center}
 .nav a{color:var(--ink);text-decoration:none;font-weight:500;padding:.4rem 0;border-bottom:2px solid transparent}
 .nav a:hover,.nav a[aria-current="page"]{border-bottom-color:var(--blue)}
-.nav a.btn{padding:.55rem 1.1rem;border-bottom:0;border-width:1.5px}
-.nav a.btn-outline{border-color:var(--blue)} .nav a.btn-primary{border-color:var(--blue)}
+.nav a.btn{padding:.5rem 1.1rem;min-height:42px;border:1.5px solid var(--blue);border-radius:var(--pill);line-height:1.1;white-space:nowrap}
+.nav a.btn:hover{border-bottom-color:var(--blue)}
+.nav a.btn-outline{color:var(--blue);background:#fff} .nav a.btn-outline:hover{background:var(--blue-tint)}
+.nav a.btn-primary{color:#fff;background:var(--blue)} .nav a.btn-primary:hover{background:var(--blue-2);border-color:var(--blue-2)}
+.mobile-nav a.btn-primary{color:#fff;border-bottom:0}
 .menu-btn{display:inline-flex;align-items:center;gap:.4rem;background:#fff;border:1.5px solid var(--line);color:var(--ink);border-radius:var(--pill);padding:.5rem .9rem;font:inherit;font-weight:600;cursor:pointer}
 .mobile-nav{display:none;background:#fff;padding:.25rem var(--gutter) 1.25rem;border-bottom:1px solid var(--line)}
 .mobile-nav[data-open="true"]{display:block}
