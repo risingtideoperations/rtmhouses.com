@@ -597,10 +597,35 @@ pages["404.html"] = head("Page not found", "That page doesn't exist. See availab
   <a class="btn btn-outline" href="https://app.propertymeld.com/tenant/rising-tide-management" rel="noopener">Request a repair</a>
   <a class="btn btn-outline" href="contact.html">Contact us</a>
 </div></section>
+<script>(function(){var m={"available-units":"/homes.html","application-criteria":"/apply.html#criteria","tenant-forms":"/residents.html#forms","contact-us":"/contact.html","financial-assistance":"/residents.html#faq","employment-and-contract-opportunities":"/careers.html"};var seg=location.pathname.split("/").filter(Boolean)[0]||"";if(m[seg])location.replace(m[seg]);})();</script>
 ''' + foot()
+
+# ---------------- old risingtidemanagement.net paths ----------------
+# risingtidemanagement.net forwards to rtmhouses.com; these catch the old WordPress page links
+OLD_PATHS = {
+    "available-units": "/homes.html",
+    "application-criteria": "/apply.html#criteria",
+    "tenant-forms": "/residents.html#forms",
+    "contact-us": "/contact.html",
+    "financial-assistance": "/residents.html#faq",
+    "employment-and-contract-opportunities": "/careers.html",
+}
+def redirect_page(dest):
+    return f'''<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<title>Moved | Rising Tide Homes</title>
+<meta name="robots" content="noindex">
+<link rel="canonical" href="{SITE}{dest.split('#')[0]}">
+<meta http-equiv="refresh" content="0; url={dest}">
+<script>location.replace("{dest}");</script>
+</head><body><p>This page moved. <a href="{dest}">Continue to Rising Tide Homes</a>.</p></body></html>
+'''
+for slug, dest in OLD_PATHS.items():
+    pages[f"{slug}/index.html"] = redirect_page(dest)
 
 os.makedirs(OUT, exist_ok=True)
 for name, html in pages.items():
+    os.makedirs(os.path.dirname(os.path.join(OUT, name)) or OUT, exist_ok=True)
     with open(os.path.join(OUT, name), "w") as f:
         f.write(html)
     print("wrote", name, len(html))
