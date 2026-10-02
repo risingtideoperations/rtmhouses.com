@@ -78,7 +78,7 @@ def foot():
     <div class="cols">
       <div>
         <img src="assets/logo-white.png" srcset="assets/logo-white@2x.png 2x" alt="Rising Tide" width="135" height="50" style="margin-bottom:.75rem">
-        <p style="color:rgba(255,255,255,.75);max-width:34ch">Single-family rental homes in the Birmingham and Montgomery, Alabama areas. Locally owned and managed.</p>
+        <p style="color:rgba(255,255,255,.75);max-width:34ch">Single-family rental homes in the Birmingham and Montgomery, Alabama areas. Locally managed.</p>
         <p style="color:rgba(255,255,255,.75)">790 Montclair Rd, Ste 215<br>Birmingham, AL 35213<br>Mon–Fri 8:00 am – 5:00 pm</p>
       </div>
       <div><h4>Renters</h4><a href="homes.html">Available houses</a><a href="apply.html">How to apply</a><a href="apply.html#criteria">Qualification criteria</a><a href="https://app.tenantturner.com/listings/risingtidemanagement" rel="noopener">Book a showing</a></div>
@@ -100,7 +100,7 @@ def foot():
 pages = {}
 
 # ---------------- index ----------------
-pages["index.html"] = head("Rising Tide Homes", "Houses for rent in Birmingham, AL. See every available house, book a self-guided showing in minutes, and apply online. Locally owned and managed.", "index.html") + f'''
+pages["index.html"] = head("Rising Tide Homes", "Houses for rent in Birmingham, AL. See every available house, book a self-guided showing in minutes, and apply online. Locally managed.", "index.html") + f'''
 <section class="hero">
   <div class="wrap">
     <div>
