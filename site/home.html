@@ -73,7 +73,7 @@
         <div class="panel" style="margin-top:1rem;box-shadow:none">
           <h3 style="font-size:1.2rem;margin-bottom:.75rem">What it takes to rent this house</h3>
           <dl class="kv" id="h-qual"></dl>
-          <p class="fine">Your security deposit amount is set when your application is approved. <a href="apply.html#criteria">Full criteria</a>.</p>
+          <p class="fine">Standard security deposit is one month's rent; applications with shortfalls may need more. <a href="apply.html#criteria">Full criteria</a>.</p>
         </div>
       </aside>
       <div class="d-text">
@@ -150,7 +150,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   ['#h-apply', '#m-apply'].forEach(s => { const a = $(s); a.href = apply; a.dataset.listing = l.id; a.dataset.addr = l.address; });
   $('#h-map').href = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(l.address + ', ' + l.city + ', ' + l.state + ' ' + l.zip);
   if (l.rent) {
-    const q = [['Take-home income', 'at least ' + RT.money(l.rent * 3) + ' / month (3× rent)'], ['Application fee', '$50 per adult, non-refundable'], ['Security deposit', 'set when your application is approved'], ['Due at move-in', l.special && l.special.amount ? 'first month (less the ' + RT.money(l.special.amount) + ' special) + security deposit' : 'first month + security deposit'], ['Credit', 'FICO under 600 is reviewed case by case'], ['Pets', 'with approval: $250 fee + $25/mo per pet']];
+    const q = [['Take-home income', 'at least ' + RT.money(l.rent * 3) + ' / month (3× rent)'], ['Application fee', '$50 per adult, non-refundable'], ['Security deposit', RT.money(l.rent) + ' (one month of rent) standard; more if the application has shortfalls'], ['Due at move-in', l.special && l.special.amount ? 'first month (less the ' + RT.money(l.special.amount) + ' special) + security deposit' : 'first month + security deposit'], ['Credit', 'FICO under 600 is reviewed case by case'], ['Pets', 'with approval: $250 fee + $25/mo per pet']];
     $('#h-qual').innerHTML = q.map(x => '<dt>' + RT.esc(x[0]) + '</dt><dd>' + RT.esc(x[1]) + '</dd>').join('');
   }
   $('#mcta').hidden = false; document.body.classList.add('has-mobile-cta');
