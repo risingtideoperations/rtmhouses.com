@@ -216,7 +216,7 @@ pages["homes.html"] = head("Available houses for rent", "Every Rising Tide house
       <div class="legend"><span><i class="pin now"></i>Available now</span><span><i class="pin soon"></i>Coming soon</span><button class="clear" id="map-toggle" type="button" aria-expanded="true">Hide map</button></div>
     </div>
     <div class="grid" id="grid" aria-live="polite"></div>
-    <p class="small muted" style="margin-top:1.5rem">Rent shown is the monthly rent. A $50 application fee applies per adult applicant. Your security deposit amount is set when your application is approved. Pets vary by house — see each listing. We do not currently have homes that accept Section 8 / Housing Choice Vouchers. <a href="apply.html">Full criteria</a>.</p>
+    <p class="small muted" style="margin-top:1.5rem">Rent shown is the monthly rent. A $50 application fee applies per adult applicant. The standard security deposit is one month's rent; applications with shortfalls may need more. Pets vary by house — see each listing. We do not currently have homes that accept Section 8 / Housing Choice Vouchers. <a href="apply.html">Full criteria</a>.</p>
   </div>
 </section>
 <script>
@@ -306,7 +306,7 @@ pages["home.html"] = head("House details", "House for rent from Rising Tide Home
         <div class="panel" style="margin-top:1rem;box-shadow:none">
           <h3 style="font-size:1.2rem;margin-bottom:.75rem">What it takes to rent this house</h3>
           <dl class="kv" id="h-qual"></dl>
-          <p class="fine">Your security deposit amount is set when your application is approved. <a href="apply.html#criteria">Full criteria</a>.</p>
+          <p class="fine">Standard security deposit is one month's rent; applications with shortfalls may need more. <a href="apply.html#criteria">Full criteria</a>.</p>
         </div>
       </aside>
       <div class="d-text">
@@ -383,7 +383,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   ['#h-apply', '#m-apply'].forEach(s => { const a = $(s); a.href = apply; a.dataset.listing = l.id; a.dataset.addr = l.address; });
   $('#h-map').href = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(l.address + ', ' + l.city + ', ' + l.state + ' ' + l.zip);
   if (l.rent) {
-    const q = [['Take-home income', 'at least ' + RT.money(l.rent * 3) + ' / month (3× rent)'], ['Application fee', '$50 per adult, non-refundable'], ['Security deposit', 'set when your application is approved'], ['Due at move-in', l.special && l.special.amount ? 'first month (less the ' + RT.money(l.special.amount) + ' special) + security deposit' : 'first month + security deposit'], ['Credit', 'FICO under 600 is reviewed case by case'], ['Pets', 'with approval: $250 fee + $25/mo per pet']];
+    const q = [['Take-home income', 'at least ' + RT.money(l.rent * 3) + ' / month (3× rent)'], ['Application fee', '$50 per adult, non-refundable'], ['Security deposit', RT.money(l.rent) + ' (one month of rent) standard; more if the application has shortfalls'], ['Due at move-in', l.special && l.special.amount ? 'first month (less the ' + RT.money(l.special.amount) + ' special) + security deposit' : 'first month + security deposit'], ['Credit', 'FICO under 600 is reviewed case by case'], ['Pets', 'with approval: $250 fee + $25/mo per pet']];
     $('#h-qual').innerHTML = q.map(x => '<dt>' + RT.esc(x[0]) + '</dt><dd>' + RT.esc(x[1]) + '</dd>').join('');
   }
   $('#mcta').hidden = false; document.body.classList.add('has-mobile-cta');
@@ -403,7 +403,7 @@ pages["apply.html"] = head("How to apply", "How to rent a Rising Tide house: wha
       <div><b>$50</b><span>application fee, per adult 19+. Non-refundable.</span></div>
       <div><b>3×</b><span>take-home monthly income vs. rent (or equivalent assets)</span></div>
       <div><b>600</b><span>FICO. Applicants with a score under 600 are reviewed on a case-by-case basis.</span></div>
-      <div><b>Deposit</b><span>Your security deposit amount is set when your application is approved.</span></div>
+      <div><b>Deposit</b><span>One month's rent standard. Applications with shortfalls may need an additional deposit.</span></div>
     </div>
     <div style="display:flex;gap:.75rem;flex-wrap:wrap;margin-bottom:2rem">
       <a class="btn btn-primary" href="homes.html">Pick a house to apply for</a>
@@ -433,10 +433,10 @@ pages["apply.html"] = head("How to apply", "How to rent a Rising Tide house: wha
       <p>Net (take-home) monthly income must be at least three times the monthly rent, or you must hold liquid assets equal to at least three times the total value of the lease. We verify it with the documents above. Cash income doesn't count. Housing allowances, government-backed disability, Social Security, and retirement income count. Child support and alimony count if the order is current and you can show six months of consistent payments. If your credit is thin or you have no rental history, time on the job helps.</p>
 
       <h3>Credit</h3>
-      <p>We pull a credit report, landlord-tenant court records, and a criminal background check on every adult applicant. Applicants with a FICO score under 600 are reviewed on a case-by-case basis. Chapter 13 bankruptcy is acceptable if you have been in repayment for 12 months and the payment shows on your pay stubs.</p>
+      <p>We pull a credit report, landlord-tenant court records, and a criminal background check on every adult applicant. Applicants with a FICO score under 600 are reviewed on a case-by-case basis. Bankruptcy: a Chapter 13 is acceptable if you have been in repayment for 12 months and the payment shows on your pay stubs. Any other bankruptcy, such as Chapter 7, must be discharged.</p>
 
       <h3>Rental history</h3>
-      <p>An eviction in the past year is a denial. A rental-related judgment with a balance over $3,400 is a denial. Homeowners: we look for no more than three late mortgage payments per year. No rental history at all isn't held against you.</p>
+      <p>An eviction in the past year is a denial. Any outstanding (unpaid) judgment for a rental account is a denial. Homeowners: we look for no more than three late mortgage payments per year. No rental history at all isn't held against you.</p>
 
       <h3>Co-signers</h3>
       <p>A co-signer or guarantor can cover a shortfall in income, credit, or rental history, but not a criminal record. Co-signers file their own application, pay the fee, and must show monthly income of at least five times the rent. Accepted at our discretion.</p>
@@ -445,7 +445,7 @@ pages["apply.html"] = head("How to apply", "How to rent a Rising Tide house: wha
       <p>Every applicant and every occupant 18 or older is screened. We may decline any application based on criminal history. These are automatic denials: a felony (or equivalent) involving property damage, violence, or a sexual offense; any offense requiring sex-offender registration; a felony for manufacturing or distributing controlled substances within the past seven years.</p>
 
       <h3>Security deposit</h3>
-      <p>Due when the lease is signed. Your security deposit amount is set when your application is approved. It's refundable at move-out less damage and any unpaid balance, and can't be applied to rent.</p>
+      <p>Due when the lease is signed. The standard security deposit is one month's rent. If your application has shortfalls (for example in credit, income, or rental history), we may ask for an additional deposit. It's refundable at move-out less damage and any unpaid balance, and can't be applied to rent.</p>
 
       <h3 id="pets">Pets</h3>
       <p>Pets need written approval before they move in (and before you get one later). Up to four pets per home. Each approved pet carries a non-refundable $250 pet fee and $25 a month in pet rent. An unapproved pet found in the home is a $250 fee, and pet rent is added through the end of the lease. Verified assistance animals are always allowed with no fee. We may decline any animal we consider unsuitable for the home, and no chained animals. Weight and breed limits are in the lease pet addendum; these breeds and their mixes may be declined: Akita, American Bulldog, Pit Bull / American Pit Bull Terrier, Bull Mastiff, Chow, Doberman, German Shepherd, Great Dane, Husky, Rottweiler, wolf hybrids, and similar.</p>
