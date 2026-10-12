@@ -100,7 +100,7 @@
     const list = (Array.isArray(raw) ? raw : []).map(x => ({
       id: String(x.id), address: x.address || x.title || '', city: x.city || '', state: x.state || 'AL', zip: x.zip || '',
       photo: x.photo || '', description: x.description || '', beds: num(x.beds), baths: num(x.baths),
-      rent: num(x.rentAmount), available: x.dateAvailable || 'Now', schedule: (x.btnUrl || '').trim(),
+      rent: num(x.rentAmount), available: x.enableWaitlist ? RT.readyLabel(x.waitlistTurnOffDate) : 'Now', // TT: code box = Now; Coming Soon / Wait List = coming soon (+ ready date) schedule: (x.btnUrl || '').trim(),
       offer: x.specialOffer || null, fees: x.fees || '', pets: x.acceptPets || '', type: x.propertyType || '',
       lat: x.latitude, lng: x.longitude, activated: x.dateActivated || '', waitlist: !!x.enableWaitlist
     })).filter(x => x.address);
@@ -124,6 +124,12 @@
       mapCache.__short = short;
     } catch (e) { mapCache = {}; }
     return mapCache;
+  };
+  // Coming-soon label from Tenant Turner's waitlist date: '10/16' if it's today or later, else 'Soon'
+  RT.readyLabel = function (d) {
+    const t = Date.parse(d || ''); if (!t) return 'Soon';
+    const dt = new Date(t), today = new Date(); today.setHours(0, 0, 0, 0);
+    return dt >= today ? (dt.getMonth() + 1) + '/' + dt.getDate() : 'Soon';
   };
   RT.applyUrl = function (l, map) {
     const k = addrKey(l.address);
@@ -207,7 +213,7 @@
   /* ---------- hero count ---------- */
   async function initCount() {
     const el = $('[data-count]'); if (!el) return;
-    try { const list = await RT.listings(); el.querySelector('b').textContent = list.length; el.querySelector('span.lbl').textContent = list.length === 1 ? 'house available now' : 'houses available now'; } catch (e) { el.hidden = true; }
+    try { const list = await RT.listings(); const nowN = list.filter(function (x) { return /now/i.test(x.available); }).length; el.querySelector('b').textContent = nowN; el.querySelector('span.lbl').textContent = nowN === 1 ? 'house available now' : 'houses available now'; } catch (e) { el.hidden = true; }
   }
 
   document.addEventListener('DOMContentLoaded', () => { initNav(); initCount(); RT.track('page_view'); });
