@@ -125,6 +125,18 @@
     } catch (e) { mapCache = {}; }
     return mapCache;
   };
+  // "Best match" ranking: available now > special > price drop > has photo > value (beds per $) > freshness
+  RT.bestScore = function (l) {
+    let s = 0;
+    if (!(l.available && !/now/i.test(l.available))) s += 1000;
+    if (l.special) s += 300 + Math.min(Number(l.special.amount) || 0, 500) / 5;
+    if (l.drop) s += 200 + Math.min(l.drop.old - l.rent, 300) / 3;
+    if (l.photo) s += 100;
+    if (l.rent && l.beds) s += Math.min(80, (l.beds / l.rent) * 80000 / 3);
+    const age = (Date.now() - (Date.parse(l.activated) || 0)) / 864e5;
+    s += Math.max(0, 40 - Math.min(age, 40));
+    return s;
+  };
   // Coming-soon label from Tenant Turner's waitlist date: '10/16' if it's today or later, else 'Soon'
   RT.readyLabel = function (d) {
     const t = Date.parse(d || ''); if (!t) return 'Soon';
