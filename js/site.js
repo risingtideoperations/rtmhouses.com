@@ -93,20 +93,20 @@
   RT.listings = async function () {
     if (feedCache) return feedCache;
     const promoP = RT.promos().catch(() => ({ specials: [], drops: [] }));
-    try { const c = sessionStorage.getItem('rt_feed'); if (c) { const o = JSON.parse(c); if (Date.now() - o.t < 5 * 60 * 1000) { feedCache = decorate(o.d, await promoP); return feedCache; } } } catch (e) {}
+    try { const c = sessionStorage.getItem('rt_feed2'); if (c) { const o = JSON.parse(c); if (Date.now() - o.t < 5 * 60 * 1000) { feedCache = decorate(o.d, await promoP); return feedCache; } } } catch (e) {}
     const r = await fetch(RT.TT_FEED, { cache: 'no-store' });
     if (!r.ok) throw new Error('feed ' + r.status);
     const raw = await r.json();
     const list = (Array.isArray(raw) ? raw : []).map(x => ({
       id: String(x.id), address: x.address || x.title || '', city: x.city || '', state: x.state || 'AL', zip: x.zip || '',
       photo: x.photo || '', description: x.description || '', beds: num(x.beds), baths: num(x.baths),
-      rent: num(x.rentAmount), available: x.enableWaitlist ? RT.readyLabel(x.waitlistTurnOffDate) : 'Now', // TT: code box = Now; Coming Soon / Wait List = coming soon (+ ready date) schedule: (x.btnUrl || '').trim(),
+      rent: num(x.rentAmount), available: x.enableWaitlist ? RT.readyLabel(x.waitlistTurnOffDate) : 'Now', /* TT: code box = Now; Coming Soon / Wait List = coming soon (+ ready date) */ schedule: (x.btnUrl || '').trim() || 'https://app.tenantturner.com/listings/risingtidemanagement',
       offer: x.specialOffer || null, fees: x.fees || '', pets: x.acceptPets || '', type: x.propertyType || '',
       lat: x.latitude, lng: x.longitude, activated: x.dateActivated || '', waitlist: !!x.enableWaitlist
     })).filter(x => x.address);
     // newest first
     list.sort((a, b) => (Date.parse(b.activated) || 0) - (Date.parse(a.activated) || 0));
-    try { sessionStorage.setItem('rt_feed', JSON.stringify({ t: Date.now(), d: list })); } catch (e) {}
+    try { sessionStorage.setItem('rt_feed2', JSON.stringify({ t: Date.now(), d: list })); } catch (e) {}
     feedCache = decorate(list, await promoP);
     return feedCache;
   };
