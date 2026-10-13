@@ -54,7 +54,7 @@
     <label class="sr" for="f-city">City</label><select id="f-city"><option value="">All cities</option></select>
     <label class="sr" for="f-beds">Bedrooms</label><select id="f-beds"><option value="">Any beds</option><option value="2">2+ beds</option><option value="3">3+ beds</option><option value="4">4+ beds</option></select>
     <label class="sr" for="f-max">Max rent</label><select id="f-max"><option value="">Any rent</option><option value="900">Up to $900</option><option value="1100">Up to $1,100</option><option value="1300">Up to $1,300</option><option value="1500">Up to $1,500</option><option value="2000">Up to $2,000</option></select>
-    <label class="sr" for="f-sort">Sort</label><select id="f-sort"><option value="new">Newest first</option><option value="rent-asc">Rent: low to high</option><option value="rent-desc">Rent: high to low</option><option value="beds">Most bedrooms</option></select>
+    <label class="sr" for="f-sort">Sort</label><select id="f-sort"><option value="best">Best match</option><option value="new">Newest first</option><option value="rent-asc">Rent: low to high</option><option value="rent-desc">Rent: high to low</option><option value="beds">Most bedrooms</option></select>
     <button class="clear" id="f-clear" type="button" hidden>Clear</button>
     <span class="result" id="f-result"></span>
   </div>
@@ -105,7 +105,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     const v = sel.sort.value;
     if (v === 'rent-asc') items.sort((a,b)=>(a.rent||9e9)-(b.rent||9e9));
     else if (v === 'rent-desc') items.sort((a,b)=>(b.rent||0)-(a.rent||0));
+    else if (v === 'new') items.sort((a,b)=>(Date.parse(b.activated)||0)-(Date.parse(a.activated)||0));
     else if (v === 'beds') items.sort((a,b)=>(b.beds||0)-(a.beds||0));
+    else items.sort((a,b)=>RT.bestScore(b)-RT.bestScore(a));
     return items;
   }
   async function run() {
