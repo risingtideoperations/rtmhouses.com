@@ -484,7 +484,7 @@ pages["residents.html"] = head("Residents", "Rising Tide residents: pay rent and
     <div class="section-head left"><div><h2>Forms</h2><p>Each one takes a couple of minutes on your phone.</p></div></div>
     <div class="tiles">
       <a class="tile" href="https://forms.zohopublic.com/risingtidemanagement1/form/TenantMoveinInspection/formperma/VfWzRyuTWtx16A4LAmLuuXj6qz51ujF1UZHJr__UoI0" rel="noopener"><div class="ic">{ICON["key"]}</div><h3>Move-in inspection</h3><p>Note the condition of the house in your first days so you're not charged for it later.</p></a>
-      <a class="tile" href="https://forms.zohopublic.com/risingtidemanagement1/form/RentPaymentArrangement/formperma/Jw0SogobEHr3btvV2RyFOkNXlsybFZEsFYZEQiVx5W4" rel="noopener"><div class="ic">{ICON["doc"]}</div><h3>Payment arrangement</h3><p>Going to be late? Tell us the date you'll pay before rent is due, not after.</p></a>
+      <a class="tile" href="payment-arrangement.html"><div class="ic">{ICON["doc"]}</div><h3>Payment arrangement</h3><p>Going to be late? Tell us the date you'll pay before rent is due, not after.</p></a>
       <a class="tile" href="https://forms.zohopublic.com/risingtidemanagement1/form/NoticetoVacate/formperma/9OGfj5Au0p0801kc9J-EpsSRTkSEjTpL5FdxwwbXY4k" rel="noopener"><div class="ic">{ICON["doc"]}</div><h3>Notice to vacate</h3><p>Moving out? Give written notice here — check your lease for how many days are required.</p></a>
       <a class="tile" href="https://forms.zohopublic.com/risingtidemanagement1/form/MoveOutConfirmation/formperma/dcaAHsJx06ttOk2wsmWmN-tPwSF71u7xsZg0TZ7OdLc" rel="noopener"><div class="ic">{ICON["doc"]}</div><h3>Move-out confirmation</h3><p>Confirm your move-out date and forwarding address for your deposit.</p></a>
     </div>
@@ -589,6 +589,44 @@ pages["careers.html"] = head("Jobs and vendors", "Work with Rising Tide Homes: m
 </section>
 ''' + foot()
 
+
+# ---------------- payment arrangement (Cullen 11/2/2026) ----------------
+# The real form is each tenant's private collections-app page (it shows their balance), so this page only asks for the
+# phone number on file; Supabase edge fn site-pay-plan texts that tenant their own link through Rent Manager.
+pages["payment-arrangement.html"] = head("Payment arrangement", "Rising Tide residents: set up a payment arrangement. Enter the cell number on your lease and we'll text you your personal link.", "payment-arrangement.html") + """
+<div class="page-head"><div class="wrap"><h1>Payment arrangement</h1><p>Going to be late? Set up your arrangement before rent is due, not after.</p></div></div>
+<section class="section-tight">
+  <div class="wrap" style="max-width:560px">
+    <form class="form" id="pa" novalidate>
+      <div><label for="pa-phone">Cell number on your lease</label><input id="pa-phone" name="phone" type="tel" inputmode="tel" required maxlength="20" autocomplete="tel" placeholder="(205) 555-0123"></div>
+      <div style="position:absolute;left:-9999px" aria-hidden="true"><label for="pa-web">Leave blank</label><input id="pa-web" name="website" tabindex="-1" autocomplete="off"></div>
+      <div class="note">We'll text your personal payment-arrangement link to that number. It shows your balance, so we only send it to the number we have on file.</div>
+      <div id="pa-out"></div>
+      <button class="btn btn-primary" type="submit" id="pa-btn">Text me my link</button>
+    </form>
+    <div class="callout" style="margin-top:1.5rem">Want to pay now instead? <a href="https://occupi.app/" rel="noopener" data-track="click_pay">Pay rent online</a>. Questions? Call <a href="tel:+12052089793">(205) 208-9793</a>.</div>
+  </div>
+</section>
+<script>
+document.getElementById('pa').addEventListener('submit', async e => {
+  e.preventDefault();
+  const f = e.target, out = document.getElementById('pa-out'), btn = document.getElementById('pa-btn');
+  const phone = f.phone.value.trim();
+  if (phone.replace(/\\D/g, '').length < 10) { out.innerHTML = '<div class="err">Enter the 10-digit cell number on your lease.</div>'; return; }
+  btn.disabled = true; btn.textContent = 'Sending…';
+  try {
+    const r = await fetch(RT.SB_URL + '/functions/v1/site-pay-plan', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone, website: f.website.value }) });
+    const j = await r.json().catch(() => ({}));
+    out.innerHTML = '<div class="' + (j.ok ? 'ok' : 'err') + '">' + (j.message || 'That didn\\'t go through. Call (205) 208-9793.') + '</div>';
+    if (j.ok) f.reset();
+  } catch (err) {
+    out.innerHTML = '<div class="err">That didn\\'t go through. Call (205) 208-9793.</div>';
+  }
+  btn.textContent = 'Text me my link'; btn.disabled = false;
+});
+</script>
+""" + foot()
+
 # ---------------- 404 ----------------
 pages["404.html"] = head("Page not found", "That page doesn't exist. See available houses or go to the resident portal.", "404.html") + '''
 <div class="page-head"><div class="wrap"><h1>That page isn't here</h1><p>The link may be old. Here's where most people are headed.</p></div></div>
@@ -599,7 +637,7 @@ pages["404.html"] = head("Page not found", "That page doesn't exist. See availab
   <a class="btn btn-outline" href="https://app.propertymeld.com/tenant/rising-tide-management" rel="noopener">Request a repair</a>
   <a class="btn btn-outline" href="contact.html">Contact us</a>
 </div></section>
-<script>(function(){var m={"available-units":"/homes.html","application-criteria":"/apply.html#criteria","tenant-forms":"/residents.html#forms","contact-us":"/contact.html","financial-assistance":"/residents.html#faq","employment-and-contract-opportunities":"/careers.html"};var seg=location.pathname.split("/").filter(Boolean)[0]||"";if(m[seg])location.replace(m[seg]);})();</script>
+<script>(function(){var m={"available-units":"/homes.html","application-criteria":"/apply.html#criteria","tenant-forms":"/residents.html#forms","contact-us":"/contact.html","financial-assistance":"/residents.html#faq","employment-and-contract-opportunities":"/careers.html","payment-arrangements":"/payment-arrangement.html"};var seg=location.pathname.split("/").filter(Boolean)[0]||"";if(m[seg])location.replace(m[seg]);})();</script>
 ''' + foot()
 
 # ---------------- old risingtidemanagement.net paths ----------------
@@ -611,6 +649,8 @@ OLD_PATHS = {
     "contact-us": "/contact.html",
     "financial-assistance": "/residents.html#faq",
     "employment-and-contract-opportunities": "/careers.html",
+    "payment-arrangements": "/payment-arrangement.html",
+    "payment-arrangement": "/payment-arrangement.html",
 }
 def redirect_page(dest):
     return f'''<!doctype html>
